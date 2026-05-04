@@ -27,14 +27,35 @@ export const createPost = async (req: AuthRequest, res: Response): Promise<void>
 
 export const getPosts = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
+    const { search, categoryId } = req.query;
+    
+    const where: any = {};
+    
+    if (search) {
+      where.OR = [
+        { title: { contains: search as string, mode: 'insensitive' } },
+        { content: { contains: search as string, mode: 'insensitive' } },
+      ];
+    }
+    
+    if (categoryId) {
+      where.categoryId = categoryId as string;
+    }
+
     const posts = await prisma.post.findMany({
-      include: { author: { select: { name: true, email: true } }, category: true },
+      where,
+      include: { 
+        author: { select: { name: true, email: true } }, 
+        category: true 
+      },
+      orderBy: { createdAt: 'desc' }
     });
     res.json(posts);
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
 };
+
 
 export const getPostById = async (req: AuthRequest, res: Response): Promise<void> => {
   try {
@@ -86,6 +107,34 @@ export const updatePost = async (req: AuthRequest, res: Response): Promise<void>
     });
 
     res.json(updatedPost);
+  } catch (error: any) {
+    res.status(500).json({ error: error.message });
+  }
+};
+export const deletePost = async (req: AuthRequest, res: Response): Promise<void> => {
+  if (!req.user) {
+    res.status(401).json({ error: 'Unauthorized' });
+    return;
+  }
+
+  try {
+    const id = req.params.id as string;
+    
+    const post = await prisma.post.findUnique({ where: { id } });
+    
+    if (!post) {
+      res.status(404).json({ error: 'Post not found' });
+      return;
+    }
+
+    if (post.authorId !== req.user.id) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
+    await prisma.post.delete({ where: { id } });
+
+    res.json({ message: 'Post deleted successfully' });
   } catch (error: any) {
     res.status(500).json({ error: error.message });
   }
