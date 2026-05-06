@@ -25,10 +25,21 @@ export const createComment = async (req: AuthRequest, res: Response): Promise<vo
   try {
     const postId = req.params.postId as string;
     const { content } = req.body;
+
+    if (typeof content !== 'string' || !content.trim()) {
+      res.status(400).json({ error: 'Comment content is required' });
+      return;
+    }
+
+    const post = await prisma.post.findUnique({ where: { id: postId } });
+    if (!post) {
+      res.status(404).json({ error: 'Post not found' });
+      return;
+    }
     
     const comment = await prisma.comment.create({
       data: {
-        content,
+        content: content.trim(),
         postId,
         authorId: req.user.id,
       },
