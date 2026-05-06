@@ -1,120 +1,98 @@
-# Node Backend — Blog Project
+# Node Backend - Blog Project
 
-> Maintainer notes: This README is written for the next developer who will maintain and extend this service. It contains project overview, quick setup, important commands, folder map, and pointers for common maintenance tasks.
+This project is a small Node.js + TypeScript blog API built with Express, Prisma, and PostgreSQL. It provides authentication, blog posts, categories, comments, and Swagger documentation.
 
-## Project overview
-
-A small Node.js + TypeScript backend for a blog application using Express and Prisma (PostgreSQL). Implements users, posts, categories, and comments with JWT-based auth.
-
-## Quickstart (development)
+## Setup Instructions
 
 Prerequisites:
-- Node.js (>= 18)
-- npm or yarn
-- PostgreSQL accessible and a connection URL
+- Node.js 18 or later
+- npm
+- PostgreSQL with a database you can connect to
 
-1. Install dependencies
+1. Install dependencies:
 
 ```bash
 npm install
 ```
 
-2. Create an `.env` file at the repository root with at least these variables:
+2. Create a `.env` file in the project root:
 
-- `DATABASE_URL` — primary connection string used by Prisma
-- `DIRECT_URL` — direct DB URL used by Prisma (if used in your environment)
-- `JWT_SECRET` — secret used to sign JWTs (default falls back to a dev value in code)
-- `PORT` — optional, defaults to `5000`
-
-Example `.env` (do not commit secrets):
-
-```
+```env
 DATABASE_URL=postgresql://user:pass@localhost:5432/blogdb
 DIRECT_URL=postgresql://user:pass@localhost:5432/blogdb
 JWT_SECRET=someStrongSecret
 PORT=5000
 ```
 
-3. Initialize Prisma (first-time setup)
+3. Generate Prisma client and create the initial migration:
 
 ```bash
 npx prisma generate
 npx prisma migrate dev --name init
 ```
 
-4. Optionally seed the database
+4. Seed sample data if needed:
 
 ```bash
 node seed-simple.js
 ```
 
-5. Run in development
+5. Start the app in development mode:
 
 ```bash
 npm run dev
 ```
 
-Build and run (production-like):
+Production-style run:
 
 ```bash
 npm run build
 npm start
 ```
 
-## Important scripts (from package.json)
+## Features Implemented
 
-- `npm run dev` — run TypeScript entry directly with `ts-node` (`src/index.ts`)
-- `npm run build` — compile TypeScript with `tsc` to `dist/`
-- `npm start` — run compiled `dist/index.js`
+- User registration and login with JWT authentication
+- Password hashing with bcryptjs
+- Role-aware authorization for admin-only category creation
+- Post creation, update, deletion, and fetch by ID
+- Post search and category filtering
+- Comment creation and listing for each post
+- Prisma-backed PostgreSQL data model for users, categories, posts, and comments
+- Swagger/OpenAPI documentation for the API
+- Health check endpoint at `/api/health`
 
-## Database
+## Bonus Features Implemented
 
-This project uses Prisma with PostgreSQL (see `prisma/schema.prisma`) — provider is `postgresql` and the schema is placed under the `public` schema. Prisma expects `DATABASE_URL` and `DIRECT_URL` env vars.
+- Swagger UI setup for interactive API exploration
+- Ownership checks so only the author can update or delete a post
+- Comment author details included in comment responses
+- Post author and category details included in post listing responses
+- Simple seed script for faster local setup
 
-Common Prisma commands:
+## Approximate Time Spent
 
-- `npx prisma migrate dev --name <desc>` — create & apply migrations locally
-- `npx prisma migrate deploy` — apply migrations in CI/production
-- `npx prisma generate` — regenerate Prisma client
+- Approximate time spent: [add your estimate here]
 
-## Folder structure
+## Folder Structure and Design Decisions
 
-- `src/` — TypeScript source
-  - `controllers/` — route handlers
-  - `routes/` — express route definitions
-  - `middleware/` — Express middlewares (auth, etc.)
-  - `lib/` — utilities (Prisma client)
-  - `config/` — configuration such as Swagger setup
-  - `index.ts` — app entrypoint
-- `prisma/` — Prisma schema and migrations
-- `seed-simple.js` — quick seed script to populate sample data
+- `src/index.ts` is the app entry point and wires middleware, Swagger, routes, and the health check.
+- `src/routes/` keeps HTTP route definitions separate from business logic so the API surface stays easy to scan.
+- `src/controllers/` holds the request handlers and Prisma queries, which keeps the route files thin.
+- `src/middleware/` contains authentication logic so token validation is reusable across routes.
+- `src/lib/prisma.ts` centralizes the Prisma client so the database connection is created in one place.
+- `src/config/swagger.ts` isolates API docs setup from the rest of the app bootstrap.
+- `prisma/schema.prisma` defines the data model for users, categories, posts, and comments in one source of truth.
+- `seed-simple.js` provides a lightweight seed path for demo or development data.
 
-When maintaining: reference `src/index.ts` to see how the app is wired and `src/lib/prisma.ts` for the Prisma client usage.
+Design decisions:
+- The code follows a controller-route split to keep request handling and transport concerns separate from persistence logic.
+- Prisma is used as the data access layer to keep queries typed and schema-driven.
+- JWT-based auth is used because it fits a stateless API and keeps the backend simple to deploy.
+- Swagger is included so the API can be explored without needing a separate client.
 
-## Maintenance pointers
+## Notes
 
-- Authentication secret: `JWT_SECRET` is read from env in `src/middleware/auth.middleware.ts` and `src/controllers/auth.controller.ts`. Rotate carefully; existing tokens will be invalidated.
-- Swagger: API docs configured under `config/swagger.ts` and referenced by `debug-swagger.ts`.
-- When adding new Prisma models: update `prisma/schema.prisma`, run `npx prisma migrate dev`, and update TypeScript types by running `npx prisma generate`.
-- Keep `@prisma/client` and `prisma` devDependency versions in sync.
-
-## Tests
-
-No automated tests are included. Consider adding unit tests (Jest/ts-jest) and request CI to run `npm run build` and Prisma migrations as part of PR validation.
-
-## Deploy / Production notes
-
-- Use `npm run build` and `npm start` for production container images.
-- Ensure your production environment sets `DATABASE_URL`, `DIRECT_URL`, and `JWT_SECRET` securely (e.g., secrets manager or environment configuration).
-- Run `npx prisma migrate deploy` during deployment to apply migrations non-interactively.
-
-## Contacts & Handoff
-
-If you need context about why decisions were made, check commit history. For questions, reach out to the original implementer or open an issue describing what you need.
-
----
-
-If you'd like, I can also:
-- add a `Makefile` or `npm` scripts for common tasks,
-- add a `.env.example` file,
-- or scaffold basic unit tests.
+- `JWT_SECRET` should be set in production and kept out of source control.
+- Prisma expects both `DATABASE_URL` and `DIRECT_URL` in the environment.
+- If you add new models, update `prisma/schema.prisma`, then run `npx prisma migrate dev` and `npx prisma generate`.
