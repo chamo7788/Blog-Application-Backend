@@ -72,7 +72,7 @@ npm start
 
 ## Approximate Time Spent
 
-- Approximate time spent: [add your estimate here]
+- Approximate time spent: 10H
 
 ## Folder Structure and Design Decisions
 
